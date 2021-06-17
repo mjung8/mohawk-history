@@ -1,0 +1,117 @@
+/* Site custom - SCSS would be better but is overkill for this small site */
+/*
+.mohawk-light {
+    color: rgb(232, 234, 240);
+}
+
+.mohawk-dark-red, h1, h2, h3, h4 {
+    color: rgb(77, 0, 38);
+}
+
+.mohawk-red {
+    color: rgb(153, 0, 51);
+}
+
+.mohawk-orange, h5.highlights {
+    color: rgb(255, 153, 51);
+}
+*/
+
+html, body {
+    background: rgb(232, 234, 240);
+}
+
+.bg-black {
+    background-color: black;
+}
+
+.section-semester {
+    padding-top: 1rem;
+    border-top: 1px solid rgb(255, 153, 51);
+}
+
+.section-course {
+    padding-top: 1rem;
+    border-top: 1px dotted rgb(255, 153, 51, 0.75);
+}
+
+.highlights {
+    background: rgb(255, 153, 51);
+}
+
+.externalLink {
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+
+/* Slapped together from this resource https://css-tricks.com/sticky-table-of-contents-with-scrolling-active-states/ */
+
+/* ScrollSpy active styles (see JS tab for activation) */
+
+html {
+    scroll-behavior: smooth;
+}
+
+.section-nav li.active>a {
+    color: white;
+    background: rgb(153, 0, 51);
+}
+
+.section-nav {
+    /* padding-left: 0; */
+    background: #efefef;
+    border-left: 1px solid rgb(153, 0, 51);
+    position: sticky;
+    top: 4rem;
+    align-self: start;
+    height: calc(100vh - 5rem);
+    overflow: auto;
+}
+
+@media (max-width: 767.98px) {
+    .section-nav {
+        top: 3rem;
+    }
+}
+
+.section-nav a {
+    text-decoration: none;
+    display: block;
+    padding: .125rem 0;
+    color: rgb(153, 0, 51);
+    transition: all 50ms ease-in-out;
+    font-size: .9rem;
+    /* 💡 This small transition makes setting of the active state smooth */
+}
+
+.section-nav a:hover, .section-nav a:focus {
+    color: #666;
+}
+
+section {
+    /* margin-bottom: 20rem; */
+    scroll-margin-top: 4rem;
+}
+
+/* Bootstrap Dashboard, other Bootstrap overrides */
+
+.navbar-dark .navbar-toggler {
+    top: .25rem;
+    right: 1rem;
+}
+
+.navbar-toggler-icon {
+    height: 1em;
+}
+
+.navbar-nav .navbar-nav li {
+    padding-left: 10px;
+}
+
+.img-fluid {
+    margin-bottom: 1rem;
+}
+
+.row {
+    flex-direction: row-reverse;
+}

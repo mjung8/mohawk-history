@@ -1,0 +1,144 @@
+/* Question 1 */
+
+SET SERVEROUTPUT ON;
+SET VERIFY OFF;
+CLEAR SCREEN;
+
+CREATE OR REPLACE TRIGGER items_au
+AFTER UPDATE ON items
+FOR EACH ROW
+DECLARE
+  v_purchase_order_id purchase_orders.purchase_order_id%TYPE;
+BEGIN
+  IF :NEW.quantity_on_hand <= :NEW.order_point THEN
+    SELECT MAX(purchase_order_id) + 1
+      INTO v_purchase_order_id
+      FROM purchase_orders; 
+    INSERT INTO purchase_orders
+      (purchase_order_id, order_date, department_id, vendor_id, total_amount, order_status)
+      VALUES (v_purchase_order_id, SYSDATE, NULL, :NEW.primary_vendor_id, :NEW.order_quantity * :NEW.item_cost, 'ACTIVE');
+    INSERT INTO purchase_order_lines
+      (purchase_order_id, line_num, item_id, units_ordered, cost_per_item, units_received, units_cancelled, date_last_arrived)
+      VALUES (v_purchase_order_id, 1, :NEW.item_id, :NEW.order_quantity, :NEW.item_cost, 0, 0, NULL);
+  END IF;
+END;
+
+/* Test for Question 1 */
+
+update items
+set order_point = 10
+where item_id = 1 or item_id = 2;
+
+select * from purchase_orders;
+
+select * from items;
+
+
+/* Question 2 */
+
+SET SERVEROUTPUT ON;
+SET VERIFY OFF;
+CLEAR SCREEN;
+
+CREATE OR REPLACE PACKAGE final_api AS
+  FUNCTION get_doc
+    (i_specialty IN physicians.specialty%TYPE)
+    RETURN physicians.physician_id%TYPE;
+    
+  PROCEDURE discharge_patients
+    (i_nursing_unit_id IN nursing_units.nursing_unit_id%TYPE,
+     o_count OUT NUMBER);
+
+END final_api;
+/
+CREATE OR REPLACE PACKAGE BODY final_api AS
+  FUNCTION get_doc
+    (i_specialty IN physicians.specialty%TYPE)
+    RETURN physicians.physician_id%TYPE
+  AS 
+    v_physician_id physicians.physician_id%TYPE;
+  BEGIN
+    SELECT physician_id
+      INTO v_physician_id
+      FROM physicians
+      WHERE LOWER(specialty) LIKE '%'||LOWER(i_specialty)||'%' 
+      AND ROWNUM = 1;
+    RETURN v_physician_id;
+  EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+      RETURN NULL;
+  END get_doc;
+  
+  PROCEDURE discharge_patients
+    (i_nursing_unit_id IN nursing_units.nursing_unit_id%TYPE,
+     o_count OUT NUMBER)
+  AS
+    v_count_encounters NUMBER;
+    CURSOR c_admissions IS
+      SELECT patient_id, discharge_date
+        FROM admissions
+        WHERE discharge_date IS NULL 
+        AND nursing_unit_id = UPPER(i_nursing_unit_id)
+        FOR UPDATE;
+  BEGIN
+    o_count := 0;
+    FOR r_admissions IN c_admissions
+    LOOP
+      SELECT COUNT(*)
+        INTO v_count_encounters
+        FROM encounters
+        WHERE encounters.patient_id = r_admissions.patient_id;
+      IF v_count_encounters > 0 THEN
+        UPDATE admissions
+          SET discharge_date = SYSDATE
+          WHERE CURRENT OF c_admissions;
+        o_count := o_count + 1;
+      END IF;
+    END LOOP;
+  END discharge_patients;
+  
+END final_api;
+
+/* Test for Question 2 */
+
+SET SERVEROUTPUT ON;
+SET VERIFY OFF;
+CLEAR SCREEN;
+
+--SELECT * FROM physicians WHERE LOWER(specialty) LIKE '%'||LOWER('GIST')||'%' AND ROWNUM = 1;
+--  SELECT * FROM physicians;
+--
+--DECLARE
+--    v_specialty physicians.specialty%TYPE := '&sv_specialty';
+--    v_physician_id physicians.physician_id%TYPE;
+--BEGIN
+--    v_physician_id := final_api.get_doc(v_specialty);
+--    DBMS_OUTPUT.PUT_LINE('Found id:' || v_physician_id || ' for specialty ' || v_specialty || '.');
+--    
+--EXCEPTION
+--    WHEN OTHERS
+--    THEN
+--        DBMS_OUTPUT.PUT_LINE('Package function did not work as expected for ' || v_physician_id || ', specialty ' || v_specialty || '.');
+--END;
+--/
+
+DECLARE
+    v_nursing_unit_id nursing_units.nursing_unit_id%TYPE := '&sv_nursing_unit_id';
+    v_count NUMBER;
+BEGIN
+    final_api.discharge_patients(v_nursing_unit_id, v_count);
+    DBMS_OUTPUT.PUT_LINE('Discharged ' || v_count || ' patients from ' || v_nursing_unit_id || '.');
+EXCEPTION
+    WHEN OTHERS
+    THEN
+        DBMS_OUTPUT.PUT_LINE('Package function did not work as expected for ' || v_nursing_unit_id || '.');
+END;
+  
+--SELECT COUNT(*), e.patient_id
+--FROM encounters e, admissions s
+--where s.discharge_date IS NULL AND e.patient_id = s.patient_id
+--GROUP BY e.patient_id
+
+--SELECT patient_id, discharge_date, nursing_unit_id
+--        FROM admissions
+--        WHERE discharge_date IS NULL 
